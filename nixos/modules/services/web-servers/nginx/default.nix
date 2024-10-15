@@ -303,7 +303,7 @@ let
           # If this vhost has SSL or is a SSL rejection host.
           # We enable a TLS variant for lines without explicit ssl or ssl = true.
           optionals (hasSSL || vhost.rejectSSL)
-            (map (listen: { port = cfg.defaultSSLListenPort; ssl = true; } // listen)
+            (map (listen: { port = cfg.defaultSSLListenPort; quicPort = cfg.defaultQUICListenPort; ssl = true; } // listen)
             (filter (listen: !(listen ? ssl) || listen.ssl) listenLines))
           # If this vhost is supposed to serve HTTP
           # We provide listen lines for those without explicit ssl or ssl = false.
@@ -328,10 +328,10 @@ let
             then filter (x: x.ssl) defaultListen
             else defaultListen;
 
-        listenString = { addr, port, ssl, proxyProtocol ? false, extraParameters ? [], ... }:
+        listenString = { addr, port, ssl, quicPort ? null, proxyProtocol ? false, extraParameters ? [], ... }:
           # UDP listener for QUIC transport protocol.
           (optionalString (ssl && vhost.quic) ("
-            listen ${addr}${optionalString (port != null) ":${toString port}"} quic "
+            listen ${addr}${optionalString (quicPort != null) ":${toString quicPort}"} quic "
           + optionalString vhost.default "default_server "
           + optionalString vhost.reuseport "reuseport "
           + optionalString (extraParameters != []) (concatStringsSep " "
@@ -565,6 +565,11 @@ in
               description = "Port number.";
               default = null;
             };
+            quicPort = mkOption {
+              type = nullOr port;
+              description = "QUIC port number.";
+              default = null;
+            };
             ssl  = mkOption {
               type = nullOr bool;
               default = null;
@@ -624,6 +629,15 @@ in
         example = 8443;
         description = ''
           If vhosts do not specify listen.port, use these ports for SSL by default.
+        '';
+      };
+
+      defaultQUICListenPort = mkOption {
+        type = types.port;
+        default = cfg.defaultSSLListenPort;
+        example = 8443;
+        description = ''
+          If vhosts do not specify listen.quicPort, use these ports for QUIC by default.
         '';
       };
 

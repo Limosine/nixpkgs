@@ -41,6 +41,11 @@ with lib;
             '';
             default = null;
           };
+          quicPort = mkOption {
+            type = nullOr port;
+            description = "QUIC port number to listen on.";
+            default = null;
+          };
           ssl = mkOption {
             type = bool;
             description = "Enable SSL.";
